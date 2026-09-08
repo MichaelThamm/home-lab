@@ -67,7 +67,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": null,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -128,10 +127,9 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "exemplar": false,
-          "expr": "immich_server_info_version_number",
+          "expr": "target_info",
           "instant": true,
-          "legendFormat": "{{version}}",
+          "legendFormat": "{{service_version}}",
           "range": false,
           "refId": "A"
         }
@@ -197,7 +195,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "immich_server_stats_user_count",
+          "expr": "immich_users_total",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -261,13 +259,13 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(immich_server_stats_usage_by_users)",
+          "expr": "process_memory_usage",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Disk space used by Immich",
+      "title": "Process memory",
       "type": "stat"
     },
     {
@@ -325,13 +323,13 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "immich_server_info_totalDiskSize",
+          "expr": "sum(system_memory_usage)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Total disk size",
+      "title": "Total memory",
       "type": "stat"
     },
     {
@@ -389,13 +387,13 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "immich_server_info_diskUse",
+          "expr": "system_memory_usage{system_memory_state=\"used\"}",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Total disk size usage",
+      "title": "Memory used",
       "type": "stat"
     },
     {
@@ -453,8 +451,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "exemplar": false,
-          "expr": "100 - immich_server_info_diskUsagePercentage",
+          "expr": "system_memory_utilization{system_memory_state=\"used\"} * 100",
           "format": "time_series",
           "instant": true,
           "interval": "",
@@ -463,7 +460,7 @@
           "refId": "A"
         }
       ],
-      "title": "Remaining disk size",
+      "title": "Memory utilization",
       "type": "stat"
     },
     {
@@ -522,7 +519,8 @@
                 "value": 80
               }
             ]
-          }
+          },
+          "unit": "ms"
         },
         "overrides": []
       },
@@ -554,17 +552,17 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "immich_system_info_loadAverage",
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_duration_bucket{net_host_port=\"2283\"}[$__rate_interval])) by (le))",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
-          "legendFormat": "{{period}}",
+          "legendFormat": "__auto",
           "range": true,
           "refId": "A",
           "useBackend": false
         }
       ],
-      "title": "Load Average",
+      "title": "API latency (p95)",
       "type": "timeseries"
     },
     {
@@ -622,7 +620,8 @@
                 "value": 80
               }
             ]
-          }
+          },
+          "unit": "percent"
         },
         "overrides": []
       },
@@ -654,7 +653,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "immich_system_info_cpu_usage",
+          "expr": "100 * (1 - avg(system_cpu_utilization{system_cpu_state=\"idle\"}))",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
@@ -664,7 +663,7 @@
           "useBackend": false
         }
       ],
-      "title": "CPU Usage",
+      "title": "CPU usage",
       "type": "timeseries"
     },
     {
@@ -756,17 +755,17 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "immich_system_info_memory{type=\"Free\"}",
+          "expr": "system_memory_usage{system_memory_state=\"used\"}",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "instant": false,
-          "legendFormat": "{{type}}",
+          "legendFormat": "{{system_memory_state}}",
           "range": true,
           "refId": "A",
           "useBackend": false
         }
       ],
-      "title": "Free memory",
+      "title": "Used memory",
       "type": "timeseries"
     },
     {
@@ -789,7 +788,7 @@
               }
             ]
           },
-          "unit": "decbytes"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -825,8 +824,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "exemplar": false,
-          "expr": "delta(immich_server_stats_usage_growth[24h])",
+          "expr": "sum(increase(http_server_request_count_total[24h]))",
           "instant": false,
           "interval": "",
           "legendFormat": "__auto",
@@ -835,7 +833,7 @@
         }
       ],
       "timeFrom": "1d",
-      "title": "Daily data growth",
+      "title": "API requests (24h)",
       "type": "stat"
     },
     {
@@ -858,7 +856,7 @@
               }
             ]
           },
-          "unit": "decbytes"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -894,14 +892,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "delta(immich_server_stats_usage_growth[1w])",
+          "expr": "sum(increase(http_server_request_count_total[1w]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
       "timeFrom": "1w",
-      "title": "Weekly data growth",
+      "title": "API requests (1w)",
       "type": "stat"
     },
     {
@@ -967,13 +965,13 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "immich_server_stats_usage_by_users",
-          "legendFormat": "{{firstName}}",
+          "expr": "system_memory_usage",
+          "legendFormat": "{{system_memory_state}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Disk usage by user",
+      "title": "Memory by state",
       "type": "piechart"
     },
     {
@@ -996,7 +994,7 @@
               }
             ]
           },
-          "unit": "decbytes"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -1032,14 +1030,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "delta(immich_server_stats_usage_growth[4w])",
+          "expr": "sum(increase(http_server_request_count_total[4w]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
       "timeFrom": "1M",
-      "title": "Monthly data growth",
+      "title": "API requests (4w)",
       "type": "stat"
     },
     {
@@ -1062,7 +1060,7 @@
               }
             ]
           },
-          "unit": "decbytes"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -1098,14 +1096,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "delta(immich_server_stats_usage_growth[1y])",
+          "expr": "sum(increase(http_server_request_count_total[1y]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
       "timeFrom": "1y",
-      "title": "Yearly data growth",
+      "title": "API requests (1y)",
       "type": "stat"
     },
     {
@@ -1162,7 +1160,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "delta(immich_server_stats_photos_growth[24h])",
+          "expr": "sum(increase(http_server_response_success_count_total[24h]))",
           "interval": "",
           "legendFormat": "__auto",
           "range": true,
@@ -1170,7 +1168,7 @@
         }
       ],
       "timeFrom": "1d",
-      "title": "Daily photos growth",
+      "title": "Successful responses (24h)",
       "type": "stat"
     },
     {
@@ -1227,14 +1225,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "delta(immich_server_stats_photos_growth[1w])",
+          "expr": "sum(increase(http_server_response_success_count_total[1w]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
       "timeFrom": "1w",
-      "title": "Weekly photos growth",
+      "title": "Successful responses (1w)",
       "type": "stat"
     },
     {
@@ -1301,16 +1299,15 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "exemplar": false,
-          "expr": "immich_server_stats_photos_by_users",
+          "expr": "process_cpu_utilization",
           "format": "time_series",
           "instant": false,
-          "legendFormat": "{{firstName}}",
+          "legendFormat": "{{process_cpu_state}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Total photos by user",
+      "title": "Process CPU by state",
       "type": "piechart"
     },
     {
@@ -1369,14 +1366,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "delta(immich_server_stats_photos_growth[4w])",
+          "expr": "sum(increase(http_server_response_success_count_total[4w]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
       "timeFrom": "1M",
-      "title": "Monthly photos growth",
+      "title": "Successful responses (4w)",
       "type": "stat"
     },
     {
@@ -1435,14 +1432,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "delta(immich_server_stats_photos_growth[1y])",
+          "expr": "sum(increase(http_server_response_success_count_total[1y]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
       "timeFrom": "1y",
-      "title": "Yearly photos growth",
+      "title": "Successful responses (1y)",
       "type": "stat"
     },
     {
@@ -1462,7 +1459,6 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "right",
-            "axisSoftMin": 9000,
             "barAlignment": 0,
             "drawStyle": "line",
             "fillOpacity": 30,
@@ -1501,7 +1497,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "Bps"
         },
         "overrides": []
       },
@@ -1533,14 +1530,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "delta(immich_server_stats_photos_by_users[4w])",
-          "legendFormat": "{{firstName}}",
+          "expr": "sum(rate(system_network_io_total[$__rate_interval])) by (network_io_direction)",
+          "legendFormat": "{{network_io_direction}}",
           "range": true,
           "refId": "A"
         }
       ],
       "timeFrom": "1M",
-      "title": "Photos Growth",
+      "title": "Network throughput (5m)",
       "type": "timeseries"
     },
     {
@@ -1560,7 +1557,6 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "right",
-            "axisSoftMin": 9000,
             "barAlignment": 0,
             "drawStyle": "line",
             "fillOpacity": 30,
@@ -1599,7 +1595,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "ms"
         },
         "overrides": []
       },
@@ -1631,14 +1628,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "delta(immich_server_stats_photos_by_users[1y])",
-          "legendFormat": "{{firstName}}",
+          "expr": "histogram_quantile(0.95, sum(rate(immich_machine_learning_repository_tick_duration_bucket[$__rate_interval])) by (le))",
+          "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
       "timeFrom": "1y",
-      "title": "Photos Growth",
+      "title": "ML tick latency (p95)",
       "type": "timeseries"
     },
     {
@@ -1661,7 +1658,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "decbytes"
         },
         "overrides": []
       },
@@ -1697,14 +1695,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "delta(immich_server_stats_videos_growth[24h])",
+          "expr": "sum(increase(http_server_response_size_sum[24h]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
       "timeFrom": "1d",
-      "title": "Daily video growth",
+      "title": "Bytes served (24h)",
       "type": "stat"
     },
     {
@@ -1727,7 +1725,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "decbytes"
         },
         "overrides": []
       },
@@ -1763,14 +1762,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "delta(immich_server_stats_videos_growth[1w])",
+          "expr": "sum(increase(http_server_response_size_sum[1w]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
       "timeFrom": "1w",
-      "title": "Weekly videos growth",
+      "title": "Bytes served (1w)",
       "type": "stat"
     },
     {
@@ -1835,13 +1834,13 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "immich_server_stats_videos_by_users",
-          "legendFormat": "{{firstName}}",
+          "expr": "sum(system_network_io_total) by (network_io_direction)",
+          "legendFormat": "{{network_io_direction}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Total videos by user",
+      "title": "Network IO by direction",
       "type": "piechart"
     },
     {
@@ -1864,7 +1863,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "decbytes"
         },
         "overrides": []
       },
@@ -1900,14 +1900,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "delta(immich_server_stats_videos_growth[4w])\r\n",
+          "expr": "sum(increase(http_server_response_size_sum[4w]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
       "timeFrom": "1M",
-      "title": "Monthly videos growth",
+      "title": "Bytes served (4w)",
       "type": "stat"
     },
     {
@@ -1930,7 +1930,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "decbytes"
         },
         "overrides": []
       },
@@ -1966,14 +1967,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "delta(immich_server_stats_videos_growth[1y])",
+          "expr": "sum(increase(http_server_response_size_sum[1y]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
       "timeFrom": "1y",
-      "title": "Yearly video growth",
+      "title": "Bytes served (1y)",
       "type": "stat"
     },
     {
@@ -1993,7 +1994,6 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "right",
-            "axisSoftMin": 9000,
             "barAlignment": 0,
             "drawStyle": "line",
             "fillOpacity": 30,
@@ -2032,7 +2032,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "ms"
         },
         "overrides": []
       },
@@ -2064,14 +2065,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "delta(immich_server_stats_videos_by_users[4w])",
-          "legendFormat": "{{firstName}}",
+          "expr": "histogram_quantile(0.95, sum(rate(immich_job_repository_queue_duration_bucket[$__rate_interval])) by (le))",
+          "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
       "timeFrom": "1M",
-      "title": "Videos Growth",
+      "title": "Job queue latency (p95)",
       "type": "timeseries"
     },
     {
@@ -2091,7 +2092,6 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "right",
-            "axisSoftMin": 9000,
             "barAlignment": 0,
             "drawStyle": "line",
             "fillOpacity": 30,
@@ -2130,7 +2130,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "ms"
         },
         "overrides": []
       },
@@ -2162,14 +2163,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "delta(immich_server_stats_videos_by_users[1y])",
-          "legendFormat": "{{firstName}}",
+          "expr": "histogram_quantile(0.95, sum(rate(immich_database_repository_with_lock_duration_bucket[$__rate_interval])) by (le))",
+          "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
       "timeFrom": "1y",
-      "title": "Videos Growth",
+      "title": "DB with_lock latency (p95)",
       "type": "timeseries"
     }
   ],
@@ -2187,8 +2188,8 @@
   "timeRangeUpdatedDuringEditOrView": false,
   "timepicker": {},
   "timezone": "",
-  "title": "immich",
-  "uid": "ZWWp3aa4kold",
-  "version": 2,
+  "title": "Immich",
+  "uid": "immich-native",
+  "version": 3,
   "weekStart": ""
 }
