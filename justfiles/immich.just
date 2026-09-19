@@ -77,7 +77,7 @@ node-exporter: vienna-backup-disk
     WantedBy=multi-user.target
     """
     sudo systemctl daemon-reload
-    sudo systemctl start node_exporter && sudo journalctl -f --unit node_exporter
+    sudo systemctl enable node_exporter && sudo journalctl -f --unit node_exporter
     
 [group('command')]
 update-server:
