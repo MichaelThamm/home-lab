@@ -20,14 +20,14 @@ receivers:
         - targets: ['localhost:8888']
 
 exporters:
-  prometheusremotewrite:
-    endpoint: http://10.64.223.160/cos-lite-prometheus-0/api/v1/write
+  otlphttp:
+    endpoint: http://10.64.223.160:4318
 
 service:
   pipelines:
     metrics:
       receivers: [prometheus]
-      exporters: [prometheusremotewrite]
+      exporters: [otlphttp]
   extensions: [health_check]
   telemetry:
     metrics:
